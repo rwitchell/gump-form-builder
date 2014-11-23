@@ -12,6 +12,8 @@
 namespace GumpFormBuilder;
 
 
+use Exception;
+
 class GumpFormBuilder
 {
     // Validation rules for execution
@@ -82,18 +84,25 @@ class GumpFormBuilder
     }
 
     /**
-     * Getter/Setter for the validation rules
+     * Adds a custom validation rule using a callback function
      *
-     * @param array $rules
-     * @return array
+     * @access public
+     * @param string   $rule
+     * @param callable $callback
+     * @return bool
+     * @throws Exception
      */
-    public function validation_rules(array $rules = array())
+    public static function add_validator($rule, $callback)
     {
-        if (!empty($rules)) {
-            $this->validation_rules = $rules;
-        } else {
-            return $this->validation_rules;
+        $method = 'validate_' . $rule;
+
+        if (method_exists(__CLASS__, $method) || isset(self::$validation_methods[$rule])) {
+            throw new Exception("Validator rule '$rule' already exists.");
         }
+
+        self::$validation_methods[$rule] = $callback;
+
+        return true;
     }
 
 
@@ -103,13 +112,28 @@ class GumpFormBuilder
      * @param array $rules
      * @return array
      */
+    public function validation_rules(array $rules = array())
+    {
+        if (empty($rules)) {
+            return $this->validation_rules;
+        }
+
+        $this->validation_rules = $rules;
+    }
+
+    /**
+     * Getter/Setter for the validation rules
+     *
+     * @param array $rules
+     * @return array
+     */
     public function form_rules(array $rules = array())
     {
-        if (!empty($rules)) {
-            $this->form_rules = $rules;
-        } else {
+        if (empty($rules)) {
             return $this->form_rules;
         }
+
+        $this->form_rules = $rules;
     }
 
     /**
@@ -161,10 +185,10 @@ class GumpFormBuilder
      * Run the filtering and validation after each other
      *
      * @param array $data
+     * @param bool  $check_fields
      * @return array
-     * @return boolean
      */
-    public function run(array $data)
+    public function run(array $data, $check_fields = false)
     {
         //$data = $this->filter($data, $this->filter_rules());
         $this->listOfDBColumns = $data;
@@ -174,6 +198,10 @@ class GumpFormBuilder
         $validated = $this->validate(
             $data, $this->form_rules()
         );
+
+        if ($check_fields === true) {
+            $this->check_fields($data);
+        }
 
         if ($validated !== true) {
             return false;
@@ -206,6 +234,27 @@ class GumpFormBuilder
         }
     }
 
+    /**
+     * Ensure that the field counts match the validation rule counts
+     *
+     * @param array $data
+     */
+    private function check_fields(array $data)
+    {
+        $ruleset  = $this->validation_rules();
+        $mismatch = array_diff_key($data, $ruleset);
+        $fields   = array_keys($mismatch);
+
+        foreach ($fields as $field) {
+            $this->errors[] = array(
+                'field' => $field,
+                'value' => $data[$field],
+                'rule'  => 'mismatch',
+                'param' => null
+            );
+        }
+    }
+
 
     /**
      * Return the error array from the last validation run
@@ -218,25 +267,25 @@ class GumpFormBuilder
     }
 
     /**
-     * Perform data validation against the provided ruleset
+     * Perform data validation against the provided ruleSet
      *
      * @access public
      * @param  mixed $input
-     * @param  array $ruleset
+     * @param  array $ruleSet
      * @return mixed
      */
-    public function validate(array $input, array $ruleset)
+    public function validate(array $input, array $ruleSet)
     {
         $this->errors = array();
-        $ruleset = array_change_key_case($ruleset, CASE_UPPER);
-
+        $ruleSet = array_change_key_case($ruleSet, CASE_UPPER);
+    
         // run through all possible inputs (DB table columns)
         foreach ($input as $number => $fieldName) {
             // check if the current input has a rule set up
-            if (array_key_exists(strtoupper($fieldName), $ruleset)) {
+            if (array_key_exists(strtoupper($fieldName), $ruleSet)) {
 
-                foreach ($ruleset as $field => $rules) {
-
+                foreach ($ruleSet as $field => $rules) {
+    
                     #if(!array_key_exists($field, $input))
                     #{
                     #	continue;
@@ -245,12 +294,12 @@ class GumpFormBuilder
                     if ($field == "") {
                         break;
                     } elseif (strtoupper($field) === strtoupper($fieldName)) {
-                        $inputFound         = 0;
-                        $input              = null;
+                        $inputFound = 0;
+                        $input      = null;
                         $attributesHTML = "";
-                        $rules              = explode('|', $rules);
-
-
+                        $rules      = explode('|', $rules);
+    
+    
                         foreach ($rules as $rule) {
                             $method = "element_{$rule}";
 
@@ -322,9 +371,21 @@ class GumpFormBuilder
     }
 
     /**
+     * Set a readable name for a specified field names
+     *
+     * @param string $field
+     * @param string $readable_name
+     * @return void
+     */
+    public static function set_field_name($field, $readable_name)
+    {
+        self::$fields[$field] = $readable_name;
+    }
+
+    /**
      * Process the validation errors and return human readable error messages
      *
-     * @param bool $convert_to_string = false
+     * @param bool   $convert_to_string = false
      * @param string $field_class
      * @param string $error_class
      * @return array
@@ -346,7 +407,15 @@ class GumpFormBuilder
             $field = ucwords(str_replace(array('_', '-'), chr(32), $e['field']));
             $param = $e['param'];
 
+            // Let's fetch explicit field names if they exist
+            if (array_key_exists($e['field'], self::$fields)) {
+                $field = self::$fields[$e['field']];
+            }
+    
             switch ($e['rule']) {
+                case 'mismatch' :
+                    $resp[] = "There is no validation rule for <span class=\"$field_class\">$field</span>";
+                    break;
                 case 'validate_required':
                     $resp[] = "The <span class=\"$field_class\">$field</span> field is required";
                     break;
@@ -411,12 +480,26 @@ class GumpFormBuilder
                     $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid human name";
                     break;
                 case 'validate_contains':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs contain one of these values: " . implode(', ',
+                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain one of these values: " . implode(', ',
                             $param);
                     break;
                 case 'validate_street_address':
                     $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a valid street address";
                     break;
+                case 'validate_date':
+                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a valid date";
+                    break;
+                case 'validate_min_numeric':
+                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a numeric value, equal to, or higher than $param";
+                    break;
+                case 'validate_max_numeric':
+                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a numeric value, equal to, or lower than $param";
+                    break;
+                case 'validate_starts' :
+                    $resp[] = "The <span class=\"$field_class\">$field</span> field is required to start with " . $param;
+                    break;
+                default:
+                    $resp[] = "The <span class=\"$field_class\">$field</span> field is invalid";
             }
         }
 
@@ -432,17 +515,131 @@ class GumpFormBuilder
     }
 
     /**
+     * Process the validation errors and return an array of errors with field names as keys
+     *
+     * @param null $convert_to_string
+     * @return array
+     */
+    public function get_errors_array($convert_to_string = null)
+    {
+        if (empty($this->errors)) {
+            return ($convert_to_string) ? null : array();
+        }
+
+        $resp = array();
+
+        foreach ($this->errors as $e) {
+
+            $field = ucwords(str_replace(array('_', '-'), chr(32), $e['field']));
+            $param = $e['param'];
+
+            // Let's fetch explicit field names if they exist
+            if (array_key_exists($e['field'], self::$fields)) {
+                $field = self::$fields[$e['field']];
+            }
+
+            switch ($e['rule']) {
+                case 'mismatch' :
+                    $resp[$field] = "There is no validation rule for $field";
+                    break;
+                case 'validate_required':
+                    $resp[$field] = "The $field field is required";
+                    break;
+                case 'validate_valid_email':
+                    $resp[$field] = "The $field field is required to be a valid email address";
+                    break;
+                case 'validate_max_len':
+                    if ($param == 1) {
+                        $resp[$field] = "The $field field needs to be shorter than $param character";
+                    } else {
+                        $resp[$field] = "The $field field needs to be shorter than $param characters";
+                    }
+                    break;
+                case 'validate_min_len':
+                    if ($param == 1) {
+                        $resp[$field] = "The $field field needs to be longer than $param character";
+                    } else {
+                        $resp[$field] = "The $field field needs to be longer than $param characters";
+                    }
+                    break;
+                case 'validate_exact_len':
+                    if ($param == 1) {
+                        $resp[$field] = "The $field field needs to be exactly $param character in length";
+                    } else {
+                        $resp[$field] = "The $field field needs to be exactly $param characters in length";
+                    }
+                    break;
+                case 'validate_alpha':
+                    $resp[$field] = "The $field field may only contain alpha characters(a-z)";
+                    break;
+                case 'validate_alpha_numeric':
+                    $resp[$field] = "The $field field may only contain alpha-numeric characters";
+                    break;
+                case 'validate_alpha_dash':
+                    $resp[$field] = "The $field field may only contain alpha characters &amp; dashes";
+                    break;
+                case 'validate_numeric':
+                    $resp[$field] = "The $field field may only contain numeric characters";
+                    break;
+                case 'validate_integer':
+                    $resp[$field] = "The $field field may only contain a numeric value";
+                    break;
+                case 'validate_boolean':
+                    $resp[$field] = "The $field field may only contain a true or false value";
+                    break;
+                case 'validate_float':
+                    $resp[$field] = "The $field field may only contain a float value";
+                    break;
+                case 'validate_valid_url':
+                    $resp[$field] = "The $field field is required to be a valid URL";
+                    break;
+                case 'validate_url_exists':
+                    $resp[$field] = "The $field URL does not exist";
+                    break;
+                case 'validate_valid_ip':
+                    $resp[$field] = "The $field field needs to contain a valid IP address";
+                    break;
+                case 'validate_valid_cc':
+                    $resp[$field] = "The $field field needs to contain a valid credit card number";
+                    break;
+                case 'validate_valid_name':
+                    $resp[$field] = "The $field field needs to contain a valid human name";
+                    break;
+                case 'validate_contains':
+                    $resp[$field] = "The $field field needs to contain one of these values: " . implode(', ', $param);
+                    break;
+                case 'validate_street_address':
+                    $resp[$field] = "The $field field needs to be a valid street address";
+                    break;
+                case 'validate_date':
+                    $resp[$field] = "The $field field needs to be a valid date";
+                    break;
+                case 'validate_min_numeric':
+                    $resp[$field] = "The $field field needs to be a numeric value, equal to, or higher than $param";
+                    break;
+                case 'validate_max_numeric':
+                    $resp[$field] = "The $field field needs to be a numeric value, equal to, or lower than $param";
+                    break;
+                default:
+                    $resp[$field] = "The $field field is invalid";
+            }
+        }
+
+        return $resp;
+    }
+
+    /**
      * Filter the input data according to the specified filter set
      *
      * @access public
      * @param  mixed $input
-     * @param  array $filterset
+     * @param  array $filterSet
      * @return mixed
      * @throws Exception
      */
-    public function filter(array $input, array $filterset)
+    public function filter(array $input, array $filterSet)
     {
-        foreach ($filterset as $field => $filters) {
+        foreach ($filterSet as $field => $filters) {
             if (!array_key_exists($field, $input)) {
                 continue;
             }
@@ -467,7 +664,11 @@ class GumpFormBuilder
                     if (function_exists($filter)) {
                         $input[$field] = $filter($input[$field]);
                     } else {
-                        throw new Exception("Filter method '$filter' does not exist.");
+                        if (isset(self::$filter_methods[$filter])) {
+                            $input[$field] = call_user_func(self::$filter_methods[$filter], $input[$field], $params);
+                        } else {
+                            throw new Exception("Filter method '$filter' does not exist.");
+                        }
                     }
                 }
             }
@@ -475,6 +676,7 @@ class GumpFormBuilder
 
         return $input;
     }
+
 
 
 
@@ -565,11 +767,11 @@ class GumpFormBuilder
         }
 
         $this->html[$field] = <<<HEREDOC
-			<div class="pure-control-group">
-				<label for="{$field}" style="{$this->cssBaseWidth}">{$field}</label>
-				<input type="text" name="{$field}" value="{$this->post[$field]}" class="{$this->cssBaseInput}" readonly {$param}>
-			</div>
-		
+                <div class="pure-control-group">
+                    <label for="{$field}" style="{$this->cssBaseWidth}">{$field}</label>
+                    <input type="text" name="{$field}" value="{$this->post[$field]}" class="{$this->cssBaseInput}" readonly {$param}>
+                </div>
+            
 HEREDOC;
         return true;
     }
@@ -605,12 +807,12 @@ HEREDOC;
         }
 
         $this->html[$field] = <<<HEREDOC
-			<div class="pure-control-group">
-				<label for="{$field}" style="{$this->cssBaseWidth}">{$field}</label>
-				<select name="{$field}" id="{$field}" class="{$this->cssBaseInput}" {$param} >
-						{$options}
-				</select> {$afterHook}
-			</div>
+                <div class="pure-control-group">
+                    <label for="{$field}" style="{$this->cssBaseWidth}">{$field}</label>
+                    <select name="{$field}" id="{$field}" class="{$this->cssBaseInput}" {$param} >
+                            {$options}
+                    </select> {$afterHook}
+                </div>
 HEREDOC;
 
         return true;
@@ -626,10 +828,10 @@ HEREDOC;
         $afterHook = $this->generateAfterHook($param);
 
         $this->html[$field] = <<<HEREDOC
-			<div class="pure-control-group">
-				<label for="{$field}" style="{$this->cssBaseWidth}">{$field}</label>
-				<input name="{$field}" value="{$this->post[$field]}" type="text" placeholder="{$field}" class="{$this->cssBaseInput}" {$param} > {$afterHook}
-			</div>
+                <div class="pure-control-group">
+                    <label for="{$field}" style="{$this->cssBaseWidth}">{$field}</label>
+                    <input name="{$field}" value="{$this->post[$field]}" type="text" placeholder="{$field}" class="{$this->cssBaseInput}" {$param} > {$afterHook}
+                </div>
 HEREDOC;
 
         return true;
@@ -654,12 +856,12 @@ HEREDOC;
         $options .= "<option" . ($selected === "no" ? " selected=selected" : null) . ">no</option>";
 
         $this->html[$field] = <<<HEREDOC
-			<div class="pure-control-group">
-				<label for="{$field}" style="width:18em;">{$field}</label>
-				<select name="{$field}" id="{$field}" class="{$this->cssBaseInput}">
-				{$options}
-				</select> {$afterHook}
-			</div>
+                <div class="pure-control-group">
+                    <label for="{$field}" style="width:18em;">{$field}</label>
+                    <select name="{$field}" id="{$field}" class="{$this->cssBaseInput}">
+                    {$options}
+                    </select> {$afterHook}
+                </div>
 HEREDOC;
 
         return true;
