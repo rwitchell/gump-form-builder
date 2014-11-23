@@ -1,6 +1,7 @@
 <?php
 /**
- * formHelper -  A class to help generate a form based on an input of text rules separated with pipes.
+ * GumpFormBuilding -  A PHP class to help generate a form based on
+ * an input of text rules separated with pipes.
  * based on code by Sean Nieuwoudt (http://twitter.com/SeanNieuwoudt)
  * @author		Robert Witchell (http://twitter.com/RobertWitchell)
  * @copyright	Copyright (c) 2013
@@ -24,7 +25,7 @@ class GumpFormBuilder
 
     // Instance attribute containing errors from last run
     protected $errors = array();
-    
+
 
     // ** ------------------------- Validation Helpers ---------------------------- ** //	
 
@@ -61,6 +62,39 @@ class GumpFormBuilder
     {
         return $this->get_readable_errors(true);
     }
+
+    /**
+     * Perform XSS clean to prevent cross site scripting
+     *
+     * @static
+     * @access public
+     * @param  array $data
+     * @return array
+     */
+    public static function xss_clean(array $data)
+    {
+        foreach ($data as $k => $v) {
+            $data[$k] = filter_var($v, FILTER_SANITIZE_STRING);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Getter/Setter for the validation rules
+     *
+     * @param array $rules
+     * @return array
+     */
+    public function validation_rules(array $rules = array())
+    {
+        if (!empty($rules)) {
+            $this->validation_rules = $rules;
+        } else {
+            return $this->validation_rules;
+        }
+    }
+
 
     /**
      * Getter/Setter for the validation rules
@@ -194,11 +228,10 @@ class GumpFormBuilder
         $this->errors = array();
         $ruleset = array_change_key_case($ruleset, CASE_UPPER);
 
-        foreach( $input as $number => $fieldName) { // run through all possible inputs (DB table columns)
-            //if( $fieldName === "TRANSACTION_TYPE" ) var_dump($fieldName);
-
-            if( array_key_exists( strtoupper($fieldName), $ruleset ) ) { // check if the current input has a rule set up
-
+        // run through all possible inputs (DB table columns)
+        foreach ($input as $number => $fieldName) {
+            // check if the current input has a rule set up
+            if (array_key_exists(strtoupper($fieldName), $ruleset)) {
 
                 foreach($ruleset as $field => $rules)
                 {
@@ -549,7 +582,7 @@ HEREDOC;
     protected function element_select($field, $input = null, $param = NULL){
         $afterHook = $this->generateAfterHook($param);
         $selected = $this->post[$field];
-        
+
         $options = "<option selected='selected'></option>";
         foreach( $input as $option ) {
             $options .= "<option" .($selected === $option ? " selected=selected" : null ). ">$option</option>\n";
@@ -637,9 +670,9 @@ HEREDOC;
             return ""; // return a blank array of options.
         }
     }
-    
+
     protected function generateAfterHook($param){
-        
+
         if( ! is_null($param) ){
             // need to pull apple out of "after='apple' readonly=''"
             $total = strlen($param);
@@ -650,7 +683,7 @@ HEREDOC;
                 $afterHook = substr($param, ($midpos)+1, ($total-$endpos)*-1 );
             }
         }
-        
+
         return empty($afterHook)? null : $afterHook;
     }
 
