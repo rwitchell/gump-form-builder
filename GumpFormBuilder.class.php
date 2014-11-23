@@ -31,7 +31,7 @@ class GumpFormBuilder
 
     // ** ------------------------- Validation Helpers ---------------------------- ** //	
 
-    public function viewRules()
+    public function viewRules()  // not used yet.
     {
         return $this->form_rules;
     }
@@ -43,9 +43,9 @@ class GumpFormBuilder
      * @param array $validators The GUMP validators
      * @return mixed True(boolean) or the array of error messages
      */
-    public static function is_valid(array $data, array $validators)
+    public static function is_valid(array $data, array $validators) // not used yet.
     {
-        $formBuilder = new GumpFormBuilder();
+        $formBuilder = new self(); // GumpFormBuilder();
 
         $formBuilder->form_rules($validators);
 
@@ -74,7 +74,7 @@ class GumpFormBuilder
      * @param  array $data
      * @return array
      */
-    public static function xss_clean(array $data)
+    public static function xss_clean(array $data) // not used yet.
     {
         foreach ($data as $k => $v) {
             $data[$k] = filter_var($v, FILTER_SANITIZE_STRING);
@@ -92,7 +92,7 @@ class GumpFormBuilder
      * @return bool
      * @throws Exception
      */
-    public static function add_validator($rule, $callback)
+    public static function add_validator($rule, $callback) // not used yet.
     {
         $method = 'validate_' . $rule;
 
@@ -172,7 +172,7 @@ class GumpFormBuilder
      * @param array $rules
      * @return array
      */
-    public function filter_rules(array $rules = array())
+    public function filter_rules(array $rules = array()) // not used yet.
     {
         if (!empty($rules)) {
             $this->filter_rules = $rules;
@@ -261,7 +261,7 @@ class GumpFormBuilder
      *
      * @return array
      */
-    public function errors()
+    public function errors() // not used yet.
     {
         return $this->errors;
     }
@@ -278,14 +278,14 @@ class GumpFormBuilder
     {
         $this->errors = array();
         $ruleSet = array_change_key_case($ruleSet, CASE_UPPER);
-    
+
         // run through all possible inputs (DB table columns)
         foreach ($input as $number => $fieldName) {
             // check if the current input has a rule set up
             if (array_key_exists(strtoupper($fieldName), $ruleSet)) {
 
                 foreach ($ruleSet as $field => $rules) {
-    
+
                     #if(!array_key_exists($field, $input))
                     #{
                     #	continue;
@@ -298,8 +298,8 @@ class GumpFormBuilder
                         $input      = null;
                         $attributesHTML = "";
                         $rules      = explode('|', $rules);
-    
-    
+
+
                         foreach ($rules as $rule) {
                             $method = "element_{$rule}";
 
@@ -411,7 +411,7 @@ class GumpFormBuilder
             if (array_key_exists($e['field'], self::$fields)) {
                 $field = self::$fields[$e['field']];
             }
-    
+
             switch ($e['rule']) {
                 case 'mismatch' :
                     $resp[] = "There is no validation rule for <span class=\"$field_class\">$field</span>";
@@ -637,7 +637,7 @@ class GumpFormBuilder
      * @return mixed
      * @throws Exception
      */
-    public function filter(array $input, array $filterSet)
+    public function filter(array $input, array $filterSet) // not used yet.
     {
         foreach ($filterSet as $field => $filters) {
             if (!array_key_exists($field, $input)) {
