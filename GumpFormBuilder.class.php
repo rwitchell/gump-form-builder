@@ -3,10 +3,10 @@
  * GumpFormBuilding -  A PHP class to help generate a form based on
  * an input of text rules separated with pipes.
  * based on code by Sean Nieuwoudt (http://twitter.com/SeanNieuwoudt)
- * @author		Robert Witchell (http://twitter.com/RobertWitchell)
- * @copyright	Copyright (c) 2013
- * @link		http://
- * @version     1.0
+ * @author        Robert Witchell (http://twitter.com/RobertWitchell)
+ * @copyright     Copyright (c) 2013
+ * @link          http://
+ * @version       1.0
  */
 
 namespace GumpFormBuilder;
@@ -29,7 +29,8 @@ class GumpFormBuilder
 
     // ** ------------------------- Validation Helpers ---------------------------- ** //	
 
-    public function viewRules(){
+    public function viewRules()
+    {
         return $this->form_rules;
     }
 
@@ -46,7 +47,7 @@ class GumpFormBuilder
 
         $formBuilder->form_rules($validators);
 
-        if($formBuilder->run($data) === false) {
+        if ($formBuilder->run($data) === false) {
             return $formBuilder->get_readable_errors(false);
         } else {
             return true;
@@ -104,7 +105,7 @@ class GumpFormBuilder
      */
     public function form_rules(array $rules = array())
     {
-        if(!empty($rules)) {
+        if (!empty($rules)) {
             $this->form_rules = $rules;
         } else {
             return $this->form_rules;
@@ -119,7 +120,7 @@ class GumpFormBuilder
      */
     public function form_rules_options(array $rules_options = array())
     {
-        if(!empty($rules_options)) {
+        if (!empty($rules_options)) {
             $this->form_rules_options = $rules_options;
         } else {
             return $this->form_rules_options;
@@ -134,7 +135,7 @@ class GumpFormBuilder
      */
     public function form_viewOnly(array $viewOnly = array())
     {
-        if(!empty($viewOnly)) {
+        if (!empty($viewOnly)) {
             $this->viewOnly = $viewOnly;
         } else {
             return $this->viewOnly;
@@ -149,7 +150,7 @@ class GumpFormBuilder
      */
     public function filter_rules(array $rules = array())
     {
-        if(!empty($rules)) {
+        if (!empty($rules)) {
             $this->filter_rules = $rules;
         } else {
             return $this->filter_rules;
@@ -174,7 +175,7 @@ class GumpFormBuilder
             $data, $this->form_rules()
         );
 
-        if($validated !== true) {
+        if ($validated !== true) {
             return false;
         } else {
 
@@ -182,15 +183,16 @@ class GumpFormBuilder
             $htmlOnly = "";
             $otherInputs = "";
 
-            if( count($this->viewOnly) === 0 ) { // No view, show all columns
-                foreach( $this->html AS $fieldName => $html ){
+            if (count($this->viewOnly) === 0) { // No view, show all columns
+                foreach ($this->html AS $fieldName => $html) {
                     $htmlOnly .= $html;
                 }
             } else {
                 // This will output the HTML is the same order as the DB table.
-                foreach( $this->listOfDBColumns AS $blank => $fieldName ){ // run through the list of DB columns
-                    if( array_key_exists($fieldName, $this->html) ) {  // if the current DB field matches an HTML key:
-                        if( array_search($fieldName, $this->viewOnly) !== FALSE ) { // if the current DB field matches a view 
+                foreach ($this->listOfDBColumns AS $blank => $fieldName) { // run through the list of DB columns
+                    if (array_key_exists($fieldName, $this->html)) {  // if the current DB field matches an HTML key:
+                        if (array_search($fieldName, $this->viewOnly) !== false
+                        ) { // if the current DB field matches a view 
                             $htmlOnly .= $this->html[$fieldName];
                         } else {
                             $otherInputs .= $this->html[$fieldName];
@@ -233,44 +235,49 @@ class GumpFormBuilder
             // check if the current input has a rule set up
             if (array_key_exists(strtoupper($fieldName), $ruleset)) {
 
-                foreach($ruleset as $field => $rules)
-                {
+                foreach ($ruleset as $field => $rules) {
 
                     #if(!array_key_exists($field, $input))
                     #{
                     #	continue;
                     #}
 
-                    if ( $field == "" ){
+                    if ($field == "") {
                         break;
-                    } elseif ( strtoupper($field) === strtoupper($fieldName) ) {
-                        $inputFound = 0;
-                        $input = NULL;
+                    } elseif (strtoupper($field) === strtoupper($fieldName)) {
+                        $inputFound         = 0;
+                        $input              = null;
                         $attributesHTML = "";
-                        $rules = explode('|', $rules);
+                        $rules              = explode('|', $rules);
 
 
-                        foreach($rules as $rule)
-                        {
+                        foreach ($rules as $rule) {
                             $method = "element_{$rule}";
 
-                            if( $rule == "nodisplay" ) {
+                            if ($rule == "nodisplay") {
                                 break;
 
-                            } elseif( is_callable(array($this, $method)) && $inputFound == 0 ) { // see if $this->$method exists
+                            } elseif (is_callable(array(
+                                    $this,
+                                    $method
+                                )) && $inputFound == 0
+                            ) { // see if $this->$method exists
                                 $elementString = $method;
                                 $inputFound = 1;
 
                             } else {
-                                if(strstr($rule, ',') !== FALSE) { // has attributes
-                                    $rule   = explode(',', $rule); // split "max_len,15" into 2 pieces
+                                if (strstr($rule, ',') !== false) { // has attributes
+                                    $rule      = explode(',', $rule); // split "max_len,15" into 2 pieces
 
 
-                                    if ( is_callable(array($this, "input_".$rule[0])) ) { // check for input_max_len()
+                                    if (is_callable(array($this, "input_" . $rule[0]))) { // check for input_max_len()
                                         $method = "input_{$rule[0]}";
                                         $input = $this->$method($rule[1]);
 
-                                    } elseif ( is_callable(array($this, "attribute_".$rule[0])) ){ // check for attribute_max_len()
+                                    } elseif (is_callable(array(
+                                        $this,
+                                        "attribute_" . $rule[0]
+                                    ))) { // check for attribute_max_len()
                                         $method = "attribute_{$rule[0]}";
                                         $attributesHTML .= $this->$method($rule[1]); // effectively: $this->attribute_options("array-transactionTypeOptions")
 
@@ -285,15 +292,15 @@ class GumpFormBuilder
                         }
                         $param = $attributesHTML; // set our $var to equal old-naming convention
 
-                        if ( $inputFound == 1 ) {
+                        if ($inputFound == 1) {
                             $result = $this->$elementString($fieldName, $input, $param); // build the HTML input
-                            if ( is_array($result) ) { // Validation Failed
+                            if (is_array($result)) { // Validation Failed
                                 $this->errors[] = $result;
                             }
 
-                        } elseif ( $rule !== "nodisplay" ) {
+                        } elseif ($rule !== "nodisplay") {
                             $result = $this->element_textbox($field);
-                            if ( is_array($result) ) { // Validation Failed
+                            if (is_array($result)) { // Validation Failed
                                 $this->errors[] = $result;
                             }
 
@@ -305,13 +312,13 @@ class GumpFormBuilder
             } else { // end if.
 
                 $result = $this->element_textbox($fieldName); // run default textbox option.
-                if ( is_array($result) ) { // Validation Failed
+                if (is_array($result)) { // Validation Failed
                     $this->errors[] = $result;
                 }
             }
         }
 
-        return (count($this->errors) > 0)? $this->errors : TRUE;
+        return (count($this->errors) > 0) ? $this->errors : true;
     }
 
     /**
@@ -323,20 +330,23 @@ class GumpFormBuilder
      * @return array
      * @return string
      */
-    public function get_readable_errors($convert_to_string = false, $field_class="field", $error_class="error-message")
-    {
-        if(empty($this->errors)) {
-            return ($convert_to_string)? null : array();
+    public function get_readable_errors(
+        $convert_to_string = false,
+        $field_class = "field",
+        $error_class = "error-message"
+    ) {
+        if (empty($this->errors)) {
+            return ($convert_to_string) ? null : array();
         }
 
         $resp = array();
 
-        foreach($this->errors as $e) {
+        foreach ($this->errors as $e) {
 
-            $field = ucwords(str_replace(array('_','-'), chr(32), $e['field']));
+            $field = ucwords(str_replace(array('_', '-'), chr(32), $e['field']));
             $param = $e['param'];
 
-            switch($e['rule']) {
+            switch ($e['rule']) {
                 case 'validate_required':
                     $resp[] = "The <span class=\"$field_class\">$field</span> field is required";
                     break;
@@ -344,21 +354,21 @@ class GumpFormBuilder
                     $resp[] = "The <span class=\"$field_class\">$field</span> field is required to be a valid email address";
                     break;
                 case 'validate_max_len':
-                    if($param == 1) {
+                    if ($param == 1) {
                         $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be shorter than $param character";
                     } else {
                         $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be shorter than $param characters";
                     }
                     break;
                 case 'validate_min_len':
-                    if($param == 1) {
+                    if ($param == 1) {
                         $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be longer than $param character";
                     } else {
                         $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be longer than $param characters";
                     }
                     break;
                 case 'validate_exact_len':
-                    if($param == 1) {
+                    if ($param == 1) {
                         $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be exactly $param character in length";
                     } else {
                         $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be exactly $param characters in length";
@@ -401,7 +411,8 @@ class GumpFormBuilder
                     $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid human name";
                     break;
                 case 'validate_contains':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs contain one of these values: ".implode(', ', $param);
+                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs contain one of these values: " . implode(', ',
+                            $param);
                     break;
                 case 'validate_street_address':
                     $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a valid street address";
@@ -409,11 +420,11 @@ class GumpFormBuilder
             }
         }
 
-        if(!$convert_to_string) {
+        if (!$convert_to_string) {
             return $resp;
         } else {
             $buffer = '';
-            foreach($resp as $s) {
+            foreach ($resp as $s) {
                 $buffer .= "<span class=\"$error_class\">$s</span>";
             }
             return $buffer;
@@ -431,21 +442,17 @@ class GumpFormBuilder
      */
     public function filter(array $input, array $filterset)
     {
-        foreach($filterset as $field => $filters)
-        {
-            if(!array_key_exists($field, $input))
-            {
+        foreach ($filterset as $field => $filters) {
+            if (!array_key_exists($field, $input)) {
                 continue;
             }
 
             $filters = explode('|', $filters);
 
-            foreach($filters as $filter)
-            {
-                $params = NULL;
+            foreach ($filters as $filter) {
+                $params = null;
 
-                if(strstr($filter, ',') !== FALSE)
-                {
+                if (strstr($filter, ',') !== false) {
                     $filter = explode(',', $filter);
 
                     $params = array_slice($filter, 1, count($filter) - 1);
@@ -453,18 +460,15 @@ class GumpFormBuilder
                     $filter = $filter[0];
                 }
 
-                if(is_callable(array($this, 'filter_'.$filter)))
-                {
-                    $method = 'filter_'.$filter;
+                if (is_callable(array($this, 'filter_' . $filter))) {
+                    $method = 'filter_' . $filter;
                     $input[$field] = $this->$method($input[$field], $params);
-                }
-                else if(function_exists($filter))
-                {
-                    $input[$field] = $filter($input[$field]);
-                }
-                else
-                {
-                    throw new Exception("Filter method '$filter' does not exist.");
+                } else {
+                    if (function_exists($filter)) {
+                        $input[$field] = $filter($input[$field]);
+                    } else {
+                        throw new Exception("Filter method '$filter' does not exist.");
+                    }
                 }
             }
         }
@@ -483,8 +487,6 @@ class GumpFormBuilder
     // ################################################################################################################
 
 
-
-
     protected $cssBaseClass = "pure-control-form";
     protected $cssBaseWidth = "width:18em;";
     protected $cssBaseInput = "pure-input-1-3";
@@ -493,14 +495,16 @@ class GumpFormBuilder
     protected $post = array();
 
     // fills the data input values if you submit a form and there is an error (the re-display of the form)
-    public function getColumn($column){
-        return isset($this->listOfDBColumns[$column]) ? $this->listOfDBColumns[$column] : NULL;
+    public function getColumn($column)
+    {
+        return isset($this->listOfDBColumns[$column]) ? $this->listOfDBColumns[$column] : null;
     }
 
-    protected function setPostData(){
+    protected function setPostData()
+    {
 
-        foreach( $this->listOfDBColumns AS $num => $field ){
-            if( array_key_exists($field, $_POST) ){
+        foreach ($this->listOfDBColumns AS $num => $field) {
+            if (array_key_exists($field, $_POST)) {
                 $this->post[$field] = $_POST[$field];
             } else {
                 $this->post[$field] = "";
@@ -509,19 +513,23 @@ class GumpFormBuilder
     }
 
 
-    public function getOtherInputs(){
-        if( !empty($this->otherInputs) ) {
+    public function getOtherInputs()
+    {
+        if (!empty($this->otherInputs)) {
             return $this->otherInputs;
         } else {
             return null;
         }
     }
 
-    public function outputJavaScript($list) {
-        if( empty($list) ) $list = array();
+    public function outputJavaScript($list)
+    {
+        if (empty($list)) {
+            $list = array();
+        }
 
         $html = "<script>";
-        foreach ( $list as $number => $js ) {
+        foreach ($list as $number => $js) {
             $html .= $js;
         }
         $html .= "</script>";
@@ -529,10 +537,11 @@ class GumpFormBuilder
         return $html;
     }
 
-    protected function element_button(){
+    protected function element_button()
+    {
 
 
-        if( $error ) {
+        if ($error) {
             return array(
                 'field' => $field,
                 'value' => $input[$field],
@@ -542,18 +551,20 @@ class GumpFormBuilder
         }
     }
 
-    protected function element_checkbox(){
+    protected function element_checkbox()
+    {
 
     }
 
-    protected function element_datetime($field, $input = null, $param = null){
+    protected function element_datetime($field, $input = null, $param = null)
+    {
 
-        if( !empty($this->post[$field]) ) {
+        if (!empty($this->post[$field])) {
             //TODO: add date var_dump to see what comes out
             //var_dump($this->post[$field]);
         }
 
-        $this->html[$field] =  <<<HEREDOC
+        $this->html[$field] = <<<HEREDOC
 			<div class="pure-control-group">
 				<label for="{$field}" style="{$this->cssBaseWidth}">{$field}</label>
 				<input type="text" name="{$field}" value="{$this->post[$field]}" class="{$this->cssBaseInput}" readonly {$param}>
@@ -563,29 +574,34 @@ HEREDOC;
         return true;
     }
 
-    protected function element_file(){
+    protected function element_file()
+    {
 
     }
 
-    protected function element_hidden(){
+    protected function element_hidden()
+    {
 
     }
 
-    protected function element_password(){
+    protected function element_password()
+    {
 
     }
 
-    protected function element_radio(){
+    protected function element_radio()
+    {
 
     }
 
-    protected function element_select($field, $input = null, $param = NULL){
+    protected function element_select($field, $input = null, $param = null)
+    {
         $afterHook = $this->generateAfterHook($param);
         $selected = $this->post[$field];
 
         $options = "<option selected='selected'></option>";
-        foreach( $input as $option ) {
-            $options .= "<option" .($selected === $option ? " selected=selected" : null ). ">$option</option>\n";
+        foreach ($input as $option) {
+            $options .= "<option" . ($selected === $option ? " selected=selected" : null) . ">$option</option>\n";
         }
 
         $this->html[$field] = <<<HEREDOC
@@ -597,14 +613,16 @@ HEREDOC;
 			</div>
 HEREDOC;
 
-        return TRUE;
+        return true;
     }
 
-    protected function element_textarea(){
+    protected function element_textarea()
+    {
 
     }
 
-    public function element_textbox($field, $input = null, $param = NULL){
+    public function element_textbox($field, $input = null, $param = null)
+    {
         $afterHook = $this->generateAfterHook($param);
 
         $this->html[$field] = <<<HEREDOC
@@ -614,9 +632,9 @@ HEREDOC;
 			</div>
 HEREDOC;
 
-        return TRUE;
+        return true;
 
-        if( $error ) {
+        if ($error) {
             return array(
                 'field' => $field,
                 'value' => $input[$field],
@@ -626,13 +644,14 @@ HEREDOC;
         }
     }
 
-    protected function element_yesno($field, $input = null, $param = NULL){
+    protected function element_yesno($field, $input = null, $param = null)
+    {
         $afterHook = $this->generateAfterHook($param);
         $selected = $this->post[$field];
 
-        $options = "<option" .($selected === "" ? " selected=selected" : null ). "></option>";
-        $options .= "<option" .($selected === "yes" ? " selected=selected" : null ). ">yes</option>";
-        $options .= "<option" .($selected === "no" ? " selected=selected" : null ). ">no</option>";
+        $options = "<option" . ($selected === "" ? " selected=selected" : null) . "></option>";
+        $options .= "<option" . ($selected === "yes" ? " selected=selected" : null) . ">yes</option>";
+        $options .= "<option" . ($selected === "no" ? " selected=selected" : null) . ">no</option>";
 
         $this->html[$field] = <<<HEREDOC
 			<div class="pure-control-group">
@@ -643,7 +662,7 @@ HEREDOC;
 			</div>
 HEREDOC;
 
-        return TRUE;
+        return true;
     }
 
     // #################################################################################################
@@ -652,44 +671,43 @@ HEREDOC;
     // #################################################################################################
 
 
-    protected function input_options($input) {
+    protected function input_options($input)
+    {
         $list = explode('-', $input);
 
-        if ( count($list) > 1 ) {
+        if (count($list) > 1) {
             return $this->form_rules_options[$list[1]];
         } else {
             return array(); // return a blank array of options.
         }
     }
 
-    protected function attribute_max_len($input) {
+    protected function attribute_max_len($input)
+    {
 
-        if ( is_int( (int) $input) ) {
-            return 'maxlength="'.$input.'" ';
+        if (is_int((int)$input)) {
+            return 'maxlength="' . $input . '" ';
         } else {
             return ""; // return a blank array of options.
         }
     }
 
-    protected function generateAfterHook($param){
+    protected function generateAfterHook($param)
+    {
 
-        if( ! is_null($param) ){
+        if (!is_null($param)) {
             // need to pull apple out of "after='apple' readonly=''"
-            $total = strlen($param);
-            $pos = strpos($param, "after='"); // find where after=' starts
+            $total  = strlen($param);
+            $pos    = strpos($param, "after='"); // find where after=' starts
             $midpos = strpos($param, "'", $pos);
-            $endpos = strpos($param, "'", $midpos+1); // find where the ' finishes AFTER our word
-            if( $pos !== FALSE ) {
-                $afterHook = substr($param, ($midpos)+1, ($total-$endpos)*-1 );
+            $endpos = strpos($param, "'", $midpos + 1); // find where the ' finishes AFTER our word
+            if ($pos !== false) {
+                $afterHook = substr($param, ($midpos) + 1, ($total - $endpos) * -1);
             }
         }
 
-        return empty($afterHook)? null : $afterHook;
+        return empty($afterHook) ? null : $afterHook;
     }
-
-
-
-
 
 
 } // EOC
