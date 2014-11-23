@@ -1,0 +1,19 @@
+{
+  "name": "rwitchell/GUMPFormBuilder",
+  "description": "A fast, extensible & stand-alone PHP form builder class.",
+  "authors": [
+    {
+      "name": "Robert Witchell",
+      "homepage": "http://twitter.com/robertwitchell"
+    },
+    {
+      "name": "Sean Nieuwoudt",
+      "homepage": "http://wixelhq.com"
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/rwitchell/GUMPFormBuilder",
+  "autoload": {
+    "files": ["GumpFormBuilder.class.php"]
+  }
+}
