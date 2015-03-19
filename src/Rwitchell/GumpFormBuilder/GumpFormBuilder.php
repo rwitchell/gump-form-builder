@@ -9,7 +9,7 @@
  * @version       1.0
  */
 
-namespace GumpFormBuilder;
+namespace Rwitchell\GumpFormBuilder;
 
 
 use Exception;

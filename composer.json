@@ -14,6 +14,8 @@
   "license": "MIT",
   "homepage": "https://github.com/rwitchell/GUMPFormBuilder",
   "autoload": {
-    "files": ["GumpFormBuilder.class.php"]
+    "psr-0": {
+      "Rwitchell": "src/"
+    }
   }
 }
