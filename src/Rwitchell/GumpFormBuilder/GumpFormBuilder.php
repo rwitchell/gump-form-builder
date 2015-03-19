@@ -897,7 +897,7 @@ HEREDOC;
     protected function generateAfterHook($param)
     {
 
-        if (!is_null($param)) {
+        if (!is_null($param) && strlen($param) > 0) {
             // need to pull apple out of "after='apple' readonly=''"
             $total  = strlen($param);
             $pos    = strpos($param, "after='"); // find where after=' starts
